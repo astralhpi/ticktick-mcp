@@ -42,26 +42,22 @@ except OSError as e:
 # Construct the full path to the .env file
 dotenv_path = dotenv_dir_path / ".env"
 
-# Check if the .env file exists in the target directory
-if not dotenv_path.is_file():
-    logging.error(f"Required .env file not found at {dotenv_path}")
-    logging.error("Please create the .env file with your TickTick credentials.")
-    logging.error("Expected content:")
-    logging.error("  TICKTICK_CLIENT_ID=your_client_id")
-    logging.error("  TICKTICK_CLIENT_SECRET=your_client_secret")
-    logging.error("  TICKTICK_REDIRECT_URI=your_redirect_uri")
-    logging.error("  TICKTICK_USERNAME=your_ticktick_email")
-    logging.error("  TICKTICK_PASSWORD=your_ticktick_password")
-    sys.exit(1) # Exit if .env file is missing
-
-# Load the required .env file
-loaded = load_dotenv(override=True, dotenv_path=dotenv_path)
-if loaded:
-    logging.info(f"Successfully loaded environment variables from: {dotenv_path}")
+# Load environment variables from the .env file when it exists, otherwise rely on
+# any variables already present in the process environment.
+loaded = False
+if dotenv_path.is_file():
+    loaded = load_dotenv(override=True, dotenv_path=dotenv_path)
+    if loaded:
+        logging.info(f"Successfully loaded environment variables from: {dotenv_path}")
+    else:
+        # Fail fast when the .env file exists but cannot be read, to avoid running without credentials.
+        logging.error(f"Failed to load environment variables from {dotenv_path}. Check file permissions and format.")
+        sys.exit(1)
 else:
-    # This case might indicate an issue reading the file even if it exists
-    logging.error(f"Failed to load environment variables from {dotenv_path}. Check file permissions and format.")
-    sys.exit(1)
+    logging.warning(
+        "No .env file found at %s; continuing with existing environment variables. Ensure the required values are exported.",
+        dotenv_path,
+    )
 
 # --- Environment Variable Loading --- #
 # Load variables after dotenv has potentially populated them
